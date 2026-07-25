@@ -41,12 +41,12 @@ class SessionViewModel(
 ) : ViewModel() {
 
     val state: StateFlow<SessionState> = userRepository.observeUser(userId)
-        .flatMapLatest { user ->
+        .flatMapLatest<User?, SessionState> { user ->
             val familyId = user?.familyId
             if (user == null || familyId == null) {
                 flowOf(SessionState.NeedsFamily)
             } else {
-                familyRepository.observeFamily(familyId).flatMapLatest { family ->
+                familyRepository.observeFamily(familyId).flatMapLatest<Family?, SessionState> { family ->
                     if (family == null || userId !in family.memberUserIds) {
                         flow {
                             userRepository.setFamilyId(userId, null)
