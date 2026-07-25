@@ -49,6 +49,7 @@ class TripEditViewModel(
     fun setTicketNumber(value: String) = update { it.copy(ticketNumber = value) }
     fun setPendingTicket(uri: Uri, extension: String) =
         update { it.copy(pendingTicketUri = uri, pendingTicketExtension = extension) }
+    fun clearPendingTicket() = update { it.copy(pendingTicketUri = null, pendingTicketExtension = "") }
     fun setHasHotel(value: Boolean) = update { it.copy(hasHotel = value) }
     fun setHotelName(value: String) = update { it.copy(hotelName = value) }
     fun setHotelAddress(value: String) = update { it.copy(hotelAddress = value) }
@@ -81,7 +82,15 @@ class TripEditViewModel(
                 val tripId = existingTrip?.id ?: tripRepository.newTripId(familyId)
 
                 val ticketUrl = state.pendingTicketUri?.let { uri ->
-                    storageRepository.uploadTicketFile(familyId, tripId, uri, state.pendingTicketExtension)
+                    try {
+                        storageRepository.uploadTicketFile(familyId, tripId, uri, state.pendingTicketExtension)
+                    } catch (e: Exception) {
+                        throw IllegalStateException(
+                            "Nie udało się wgrać biletu - Firebase Storage może nie być włączony w tym " +
+                                "projekcie (wymaga planu Blaze). Usuń załączony plik (numer biletu możesz " +
+                                "zostawić) i zapisz ponownie.",
+                        )
+                    }
                 } ?: state.existingTicketUrl
 
                 val ticketInfo = if (state.ticketNumber.isNotBlank() || !ticketUrl.isNullOrBlank()) {

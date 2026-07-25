@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
@@ -235,16 +236,23 @@ fun TripEditScreen(
                     label = { Text("Numer biletu (opcjonalnie)") },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Button(onClick = { ticketPickerLauncher.launch(arrayOf("image/*", "application/pdf")) }) {
-                    Icon(Icons.Filled.AttachFile, contentDescription = null)
-                    Text(
-                        text = when {
-                            form.pendingTicketUri != null -> "Nowy plik wybrany"
-                            !form.existingTicketUrl.isNullOrBlank() -> "Zmień załączony bilet"
-                            else -> "Dodaj bilet (PDF, JPG, PNG)"
-                        },
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Button(onClick = { ticketPickerLauncher.launch(arrayOf("image/*", "application/pdf")) }) {
+                        Icon(Icons.Filled.AttachFile, contentDescription = null)
+                        Text(
+                            text = when {
+                                form.pendingTicketUri != null -> "Nowy plik wybrany"
+                                !form.existingTicketUrl.isNullOrBlank() -> "Zmień załączony bilet"
+                                else -> "Dodaj bilet (PDF, JPG, PNG)"
+                            },
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                    if (form.pendingTicketUri != null) {
+                        IconButton(onClick = viewModel::clearPendingTicket) {
+                            Icon(Icons.Filled.Close, contentDescription = "Usuń wybrany plik")
+                        }
+                    }
                 }
             }
 
