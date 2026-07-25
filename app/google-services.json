@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "wyjazdy-placeholder",
-    "storage_bucket": "wyjazdy-placeholder.appspot.com"
+    "project_number": "491860461320",
+    "project_id": "wyjazdy-bfe26",
+    "storage_bucket": "wyjazdy-bfe26.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:491860461320:android:18f246cee6e3c0f2a34ebd",
         "android_client_info": {
           "package_name": "com.rodzina.wyjazdy"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "000000000000-placeholder.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaPlaceholderPlaceholderPlaceholderPlaceh"
+          "current_key": "AIzaSyA1WZ689L2T3u8xJh5m_-Lv4f-HxwfhXao"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "000000000000-placeholder.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }
