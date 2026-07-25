@@ -4,7 +4,7 @@ Rodzinna apka Android do śledzenia wyjazdów służbowych — wspólny dashboar
 
 ## Wymagania
 
-- Android Studio (najnowsza stabilna wersja) z zainstalowanym Android SDK (compileSdk/targetSdk 34, minSdk 26).
+- Android Studio (najnowsza stabilna wersja) z zainstalowanym Android SDK (compileSdk/targetSdk 35, minSdk 26).
 - Konto Google + projekt w [Firebase Console](https://console.firebase.google.com).
 - Klucz Google Maps API (Google Cloud Console).
 

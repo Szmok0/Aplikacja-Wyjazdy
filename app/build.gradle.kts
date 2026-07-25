@@ -19,12 +19,12 @@ val mapsApiKey: String = (localProperties.getProperty("MAPS_API_KEY") ?: "").ifB
 
 android {
     namespace = "com.rodzina.wyjazdy"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.rodzina.wyjazdy"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
