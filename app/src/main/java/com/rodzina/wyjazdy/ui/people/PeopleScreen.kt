@@ -1,13 +1,17 @@
-package com.rodzina.wyjazdy.ui.family
+package com.rodzina.wyjazdy.ui.people
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -32,19 +36,18 @@ import com.rodzina.wyjazdy.data.model.Family
 import com.rodzina.wyjazdy.data.model.User
 import com.rodzina.wyjazdy.di.AppContainer
 import com.rodzina.wyjazdy.ui.common.AvatarBadge
+import com.rodzina.wyjazdy.ui.theme.personColor
 
 @Composable
-fun FamilySettingsScreen(
+fun PeopleScreen(
     container: AppContainer,
     family: Family,
     members: List<User>,
     currentUserId: String,
-    onOpenNotificationSettings: () -> Unit,
-    onSignOut: () -> Unit,
 ) {
-    val viewModel: FamilySettingsViewModel = viewModel(
+    val viewModel: PeopleViewModel = viewModel(
         key = family.id,
-        factory = FamilySettingsViewModel.factory(family.id, container.familyRepository),
+        factory = PeopleViewModel.factory(family.id, container.familyRepository),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
@@ -53,7 +56,7 @@ fun FamilySettingsScreen(
     var memberPendingRemoval by remember { mutableStateOf<User?>(null) }
     var memberPendingTransfer by remember { mutableStateOf<User?>(null) }
 
-    Scaffold(topBar = { TopAppBar(title = { Text(family.name) }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text("Osoby") }) }) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -61,6 +64,7 @@ fun FamilySettingsScreen(
             item {
                 Card {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(family.name, style = MaterialTheme.typography.titleMedium)
                         Text("Kod zaproszenia", style = MaterialTheme.typography.titleSmall)
                         Text(
                             text = family.activeInviteCode ?: "—",
@@ -90,7 +94,14 @@ fun FamilySettingsScreen(
                     ) {
                         AvatarBadge(member, memberUserIds)
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(member.displayName.ifBlank { "Bez nazwy" })
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(personColor(member.id, memberUserIds), CircleShape),
+                                )
+                                Text(member.displayName.ifBlank { "Bez nazwy" })
+                            }
                             Text(
                                 text = if (member.id == family.adminUserId) "Admin" else "Członek rodziny",
                                 style = MaterialTheme.typography.bodySmall,
@@ -105,16 +116,6 @@ fun FamilySettingsScreen(
                 }
             }
 
-            item {
-                OutlinedButton(onClick = onOpenNotificationSettings, modifier = Modifier.fillMaxWidth()) {
-                    Text("Ustawienia powiadomień")
-                }
-            }
-            item {
-                OutlinedButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
-                    Text("Wyloguj się")
-                }
-            }
             if (state.errorMessage != null) {
                 item {
                     Text(text = state.errorMessage!!, color = MaterialTheme.colorScheme.error)

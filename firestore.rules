@@ -51,8 +51,10 @@ service cloud.firestore {
       match /trips/{tripId} {
         allow read: if isMember(familyId);
 
+        // Zwykły członek może dodać wyjazd tylko dla siebie; admin może dodać "kto jedzie"
+        // wskazując dowolnego członka rodziny jako właściciela.
         allow create: if isMember(familyId)
-          && request.resource.data.ownerUserId == request.auth.uid;
+          && (request.resource.data.ownerUserId == request.auth.uid || isAdmin(familyId));
 
         allow update, delete: if isMember(familyId)
           && (isAdmin(familyId) || resource.data.ownerUserId == request.auth.uid);

@@ -3,6 +3,7 @@ package com.rodzina.wyjazdy.ui.tripedit
 import android.webkit.MimeTypeMap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,14 +15,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +46,9 @@ import com.rodzina.wyjazdy.data.model.EventType
 import com.rodzina.wyjazdy.data.model.Trip
 import com.rodzina.wyjazdy.data.model.TransportType
 import com.rodzina.wyjazdy.data.model.TripStatus
+import com.rodzina.wyjazdy.data.model.User
 import com.rodzina.wyjazdy.di.AppContainer
+import com.rodzina.wyjazdy.ui.common.ChipSelectorRow
 import com.rodzina.wyjazdy.ui.common.DateTimePickerField
 import com.rodzina.wyjazdy.ui.common.MiniMap
 import kotlinx.coroutines.Dispatchers
@@ -60,6 +62,8 @@ fun TripEditScreen(
     container: AppContainer,
     familyId: String,
     currentUserId: String,
+    members: List<User>,
+    isAdmin: Boolean,
     existingTrip: Trip?,
     onDone: () -> Unit,
 ) {
@@ -74,6 +78,7 @@ fun TripEditScreen(
     val saved by viewModel.saved.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var showMoreInfo by remember { mutableStateOf(false) }
 
     LaunchedEffect(saved) { if (saved) onDone() }
 
@@ -107,62 +112,41 @@ fun TripEditScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            FormSection(title = "Podstawowe") {
+            if (isAdmin && members.size > 1) {
+                FormSection(title = "Kto jedzie?") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        members.forEach { member ->
+                            FilterChip(
+                                selected = form.ownerUserId == member.id,
+                                onClick = { viewModel.setOwnerUserId(member.id) },
+                                label = { Text(if (member.id == currentUserId) "Ja" else member.displayName.ifBlank { "?" }) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            FormSection(title = "Gdzie / Kiedy / Czas") {
                 OutlinedTextField(
                     value = form.city,
                     onValueChange = viewModel::setCity,
                     label = { Text("Miasto") },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
-                    value = form.eventTitle,
-                    onValueChange = viewModel::setEventTitle,
-                    label = { Text("Nazwa wydarzenia") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                EnumDropdown(
-                    label = "Typ wydarzenia",
-                    options = EventType.entries,
-                    selected = form.eventType,
-                    optionLabel = { it.label },
-                    onSelected = viewModel::setEventType,
-                )
                 DateTimePickerField("Wyjazd", form.dateStart, viewModel::setDateStart)
                 DateTimePickerField("Powrót", form.dateEnd, viewModel::setDateEnd)
-                EnumDropdown(
-                    label = "Status",
-                    options = TripStatus.entries,
-                    selected = form.status,
-                    optionLabel = { it.label },
-                    onSelected = viewModel::setStatus,
-                )
             }
 
             FormSection(title = "Transport") {
-                EnumDropdown(
-                    label = "Środek transportu",
+                ChipSelectorRow(
                     options = TransportType.entries,
                     selected = form.transportType,
-                    optionLabel = { it.label },
-                    onSelected = viewModel::setTransportType,
+                    label = { it.label },
+                    onSelect = viewModel::setTransportType,
                 )
-                OutlinedTextField(
-                    value = form.ticketNumber,
-                    onValueChange = viewModel::setTicketNumber,
-                    label = { Text("Numer biletu (opcjonalnie)") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Button(onClick = { ticketPickerLauncher.launch(arrayOf("image/*", "application/pdf")) }) {
-                    Icon(Icons.Filled.AttachFile, contentDescription = null)
-                    Text(
-                        text = when {
-                            form.pendingTicketUri != null -> "Nowy plik wybrany"
-                            !form.existingTicketUrl.isNullOrBlank() -> "Zmień załączony bilet"
-                            else -> "Dodaj zdjęcie/PDF biletu"
-                        },
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
             }
 
             FormSection(title = "Nocleg") {
@@ -213,30 +197,53 @@ fun TripEditScreen(
                 ) {
                     Text("Znajdź na mapie")
                 }
+            }
+
+            FormSection(title = "Rodzaj wydarzenia") {
+                ChipSelectorRow(
+                    options = EventType.entries,
+                    selected = form.eventType,
+                    label = { it.label },
+                    onSelect = viewModel::setEventType,
+                )
+                OutlinedTextField(
+                    value = form.eventTitle,
+                    onValueChange = viewModel::setEventTitle,
+                    label = { Text("Nazwa wydarzenia") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            FormSection(title = "Trasa przejazdu / Mapa") {
                 val lat = form.venueLat
                 val lng = form.venueLng
                 if (lat != null && lng != null) {
                     MiniMap(lat = lat, lng = lng, title = form.venueAddress)
+                } else {
+                    Text(
+                        "Znajdź adres miejsca szkolenia powyżej, żeby zobaczyć podgląd na mapie",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 
-            FormSection(title = "Kontakt awaryjny") {
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Switch(checked = form.hasEmergencyContact, onCheckedChange = viewModel::setHasEmergencyContact)
-                    Text("Podaj kontakt awaryjny", modifier = Modifier.padding(start = 8.dp))
-                }
-                if (form.hasEmergencyContact) {
-                    OutlinedTextField(
-                        value = form.emergencyContactName,
-                        onValueChange = viewModel::setEmergencyContactName,
-                        label = { Text("Imię i nazwisko") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = form.emergencyContactPhone,
-                        onValueChange = viewModel::setEmergencyContactPhone,
-                        label = { Text("Telefon") },
-                        modifier = Modifier.fillMaxWidth(),
+            FormSection(title = "Bilet") {
+                OutlinedTextField(
+                    value = form.ticketNumber,
+                    onValueChange = viewModel::setTicketNumber,
+                    label = { Text("Numer biletu (opcjonalnie)") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Button(onClick = { ticketPickerLauncher.launch(arrayOf("image/*", "application/pdf")) }) {
+                    Icon(Icons.Filled.AttachFile, contentDescription = null)
+                    Text(
+                        text = when {
+                            form.pendingTicketUri != null -> "Nowy plik wybrany"
+                            !form.existingTicketUrl.isNullOrBlank() -> "Zmień załączony bilet"
+                            else -> "Dodaj bilet (PDF, JPG, PNG)"
+                        },
+                        modifier = Modifier.padding(start = 8.dp),
                     )
                 }
             }
@@ -249,6 +256,50 @@ fun TripEditScreen(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                 )
+            }
+
+            Card {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = if (showMoreInfo) 8.dp else 0.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        Text("Dodatkowe informacje", style = MaterialTheme.typography.titleMedium)
+                        IconButton(onClick = { showMoreInfo = !showMoreInfo }) {
+                            Icon(if (showMoreInfo) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, contentDescription = null)
+                        }
+                    }
+                    if (showMoreInfo) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Status", style = MaterialTheme.typography.titleSmall)
+                            ChipSelectorRow(
+                                options = TripStatus.entries,
+                                selected = form.status,
+                                label = { it.label },
+                                onSelect = viewModel::setStatus,
+                            )
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                                Switch(checked = form.hasEmergencyContact, onCheckedChange = viewModel::setHasEmergencyContact)
+                                Text("Kontakt awaryjny", modifier = Modifier.padding(start = 8.dp))
+                            }
+                            if (form.hasEmergencyContact) {
+                                OutlinedTextField(
+                                    value = form.emergencyContactName,
+                                    onValueChange = viewModel::setEmergencyContactName,
+                                    label = { Text("Imię i nazwisko") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                OutlinedTextField(
+                                    value = form.emergencyContactPhone,
+                                    onValueChange = viewModel::setEmergencyContactPhone,
+                                    label = { Text("Telefon") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             if (form.errorMessage != null) {
@@ -278,39 +329,6 @@ private fun FormSection(title: String, content: @Composable () -> Unit) {
         ) {
             Text(text = title, style = MaterialTheme.typography.titleMedium)
             content()
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun <T> EnumDropdown(
-    label: String,
-    options: List<T>,
-    selected: T,
-    optionLabel: (T) -> String,
-    onSelected: (T) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        OutlinedTextField(
-            value = optionLabel(selected),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(optionLabel(option)) },
-                    onClick = {
-                        onSelected(option)
-                        expanded = false
-                    },
-                )
-            }
         }
     }
 }

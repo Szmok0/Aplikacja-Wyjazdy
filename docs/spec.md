@@ -106,19 +106,31 @@ users/{userId}
 
 ## 5. Ekrany (UI/UX)
 
+Nawigacja dolna: **Wyjazdy · Kalendarz · Mapa · Osoby · Profil**
+
 1. **Logowanie** — Google Sign-In, dołącz do rodziny kodem / stwórz rodzinę
-2. **Lista wyjazdów** — karty pogrupowane: "Nadchodzące" / "Historia", awatar osoby + kolor wg statusu, filtr osoby u góry, FAB "+ Dodaj wyjazd"
-3. **Dodaj/edytuj wyjazd** — formularz sekcjami: Podstawowe (miasto, data, godziny) → Transport (kategoria + bilet) → Nocleg (hotel, opcjonalnie) → Miejsce szkolenia (adres + mapa) → Komentarz
-4. **Szczegóły wyjazdu** — wszystkie dane + mini-mapa + przycisk statusu bezpieczeństwa + historia statusów
-5. **Kalendarz** — widok miesiąca, kropka na dniach z wyjazdem, tap → szczegóły
-6. **Mapa/trasa** — pełnoekranowa mapa z trasą i pinezką miejsca
-7. **Ustawienia rodziny** — lista członków, kod zaproszenia, transfer roli admina
-8. **Ustawienia powiadomień** — kiedy przypominać, jakie statusy wysyłać
+2. **Wyjazdy (lista)** — pasek filtrów osób (Wszyscy + avatary), sekcja "Nadchodzące", karty z: miasto, data, godziny, ikony transportu/noclegu, status, kolorowa kropka/etykieta osoby. Przycisk "Dodaj wyjazd"
+3. **Nowy wyjazd / edycja** — formularz sekcjami: kto jedzie (jeśli admin dodaje za kogoś) → Gdzie/Kiedy/Czas → Transport (chipy) → Hotel/nocleg (toggle) → Miejsce szkolenia (adres) → Rodzaj wydarzenia → Trasa przejazdu → Bilet (załącznik) → Komentarz
+4. **Szczegóły wyjazdu** — dane osoby, mini-mapa trasy z czasem/dystansem, wszystkie pola wyjazdu, załączony bilet, przyciski Edytuj/Usuń/Udostępnij
+5. **Kalendarz** — widok miesiąca z kolorowymi kropkami per osoba (legenda na górze), lista "Nadchodzące wydarzenia" pod spodem, sekcja ustawień przypomnień (kiedy powiadamiać, co dodać do kalendarza systemowego)
+6. **Mapa** — pełnoekranowa mapa z trasą i pinezką miejsca
+7. **Osoby** — lista członków rodziny z kolorami, kod zaproszenia, transfer roli admina
+8. **Profil** — dane własnego konta, ustawienia powiadomień push
 
 ### Kierunek wizualny
+- **Styl**: Material 3 (Jetpack Compose, dynamiczne kolory Android gdzie możliwe)
+- **Motyw**: jasny/ciemny automatycznie wg ustawień systemu
+- **Kolor przewodni**: niebieski — klasyczny, dobrze współgra z widokiem mapy/trasy
+- **Referencja wizualna**: mockupy z sesji projektowej (Figma/wygenerowane) — dolna nawigacja, kolorowe kropki per osoba, karty bez zdjęć (więcej miejsca na dane)
+- Bez zdjęć miast na kartach — świadoma decyzja, żeby nie komplikować (bundlowanie zasobów lub API zdjęć) i zostawić więcej miejsca na treść karty
 - Czytelność na pierwszy rzut oka (rodzina sprawdza "na szybko")
-- Status koduje kolor: planowany (szary/niebieski), w drodze (pomarańczowy), dojechała (zielony), zakończony (szary)
-- Karta wyjazdu na liście: miasto + data + ikona transportu + status jednym spojrzeniem
+- Status koduje kolor: planowany (żółty/amber), w drodze (niebieski), dojechała (zielony), zakończony (szary)
+- **Kolor per osoba**: każdy członek rodziny ma przypisany stały kolor (kropka przy nazwisku, obramowanie karty, legenda w kalendarzu) — osobna kodyfikacja od statusu wyjazdu
+- Karta wyjazdu na liście: miasto + data + ikony transportu/noclegu + status + kolorowa kropka/etykieta osoby
+- Filtr osób jako pozioma lista avatarów/chipów na górze listy ("Wszyscy" / imiona)
+- Transport wybierany jako chipy (nie dropdown) — szybszy tap
+- Pola noclegu chowane za toggle'em, żeby formularz nie przytłaczał przy wyjazdach jednodniowych
+- Dolna nawigacja: Wyjazdy / Kalendarz / Mapa / Osoby / Profil
 
 ## 6. Stack techniczny
 

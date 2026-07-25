@@ -29,7 +29,9 @@ class TripEditViewModel(
     private val storageRepository: StorageRepository,
 ) : ViewModel() {
 
-    private val _form = MutableStateFlow(existingTrip?.let { TripFormState.fromTrip(it) } ?: TripFormState())
+    private val _form = MutableStateFlow(
+        existingTrip?.let { TripFormState.fromTrip(it) } ?: TripFormState(ownerUserId = currentUserId),
+    )
     val form: StateFlow<TripFormState> = _form
 
     private val _saved = MutableStateFlow(false)
@@ -39,6 +41,7 @@ class TripEditViewModel(
         _form.value = transform(_form.value).copy(errorMessage = null)
     }
 
+    fun setOwnerUserId(value: String) = update { it.copy(ownerUserId = value) }
     fun setCity(value: String) = update { it.copy(city = value) }
     fun setDateStart(value: LocalDateTime) = update { it.copy(dateStart = value) }
     fun setDateEnd(value: LocalDateTime) = update { it.copy(dateEnd = value) }
@@ -100,7 +103,7 @@ class TripEditViewModel(
 
                 val trip = Trip(
                     id = tripId,
-                    ownerUserId = existingTrip?.ownerUserId ?: currentUserId,
+                    ownerUserId = state.ownerUserId,
                     city = state.city.trim(),
                     dateStart = state.dateStart.toTimestamp(),
                     dateEnd = state.dateEnd.toTimestamp(),

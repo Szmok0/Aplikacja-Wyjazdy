@@ -9,6 +9,7 @@ import com.rodzina.wyjazdy.util.toLocalDateTime
 import java.time.LocalDateTime
 
 data class TripFormState(
+    val ownerUserId: String = "",
     val city: String = "",
     val dateStart: LocalDateTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0),
     val dateEnd: LocalDateTime = LocalDateTime.now().plusDays(2).withHour(18).withMinute(0),
@@ -40,6 +41,7 @@ data class TripFormState(
             val start = trip.dateStart.toLocalDateTime()
             val end = trip.dateEnd.toLocalDateTime()
             return TripFormState(
+                ownerUserId = trip.ownerUserId,
                 city = trip.city,
                 dateStart = start,
                 dateEnd = end,

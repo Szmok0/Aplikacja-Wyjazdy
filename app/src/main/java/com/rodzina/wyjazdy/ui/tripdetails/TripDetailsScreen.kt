@@ -12,14 +12,16 @@ import androidx.compose.foundation.layout.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -90,11 +92,20 @@ fun TripDetailsScreen(
                 title = { Text(trip.city) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, null) } },
                 actions = {
-                    if (canEdit) {
-                        IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Edytuj") }
-                        IconButton(onClick = { showDeleteConfirm = true }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Usuń")
+                    IconButton(onClick = {
+                        val shareText = buildString {
+                            append(trip.eventTitle.ifBlank { trip.eventType.label })
+                            append(" - ${trip.city}\n")
+                            append(formatDateRange(trip.dateStart, trip.dateEnd))
+                            if (trip.venueAddress.isNotBlank()) append("\n${trip.venueAddress}")
                         }
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Udostępnij wyjazd"))
+                    }) {
+                        Icon(Icons.Filled.Share, contentDescription = "Udostępnij")
                     }
                 },
             )
@@ -117,45 +128,48 @@ fun TripDetailsScreen(
                 StatusChip(status = trip.status)
             }
 
-            DetailRow(icon = { Icon(transportIcon(trip.transportType), null) }, label = "Transport", value = trip.transportType.label)
-
-            trip.ticketInfo?.let { ticket ->
-                Card {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(text = "Bilet", style = MaterialTheme.typography.titleSmall)
-                        if (ticket.number.isNotBlank()) Text("Numer: ${ticket.number}")
-                        if (ticket.fileUrl.isNotBlank()) {
-                            TextButton(onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(ticket.fileUrl)))
-                            }) { Text("Otwórz bilet") }
-                        }
-                    }
-                }
-            }
-
-            trip.hotel?.let { hotel ->
-                Card {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(text = "Nocleg", style = MaterialTheme.typography.titleSmall)
-                        if (hotel.name.isNotBlank()) Text(hotel.name)
-                        if (hotel.address.isNotBlank()) Text(hotel.address)
-                        if (hotel.checkIn != null && hotel.checkOut != null) {
-                            Text("${formatDateTime(hotel.checkIn)} – ${formatDateTime(hotel.checkOut)}")
-                        }
-                    }
-                }
-            }
-
-            if (trip.venueAddress.isNotBlank()) {
+            val lat = trip.venueLat
+            val lng = trip.venueLng
+            if (lat != null && lng != null) {
                 Card {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(text = "Miejsce szkolenia", style = MaterialTheme.typography.titleSmall)
-                        Text(trip.venueAddress)
-                        val lat = trip.venueLat
-                        val lng = trip.venueLng
-                        if (lat != null && lng != null) {
-                            MiniMap(lat = lat, lng = lng, title = trip.venueAddress, onClick = onOpenRouteMap)
+                        Text(text = "Trasa przejazdu", style = MaterialTheme.typography.titleSmall)
+                        MiniMap(lat = lat, lng = lng, title = trip.venueAddress, onClick = onOpenRouteMap)
+                        TextButton(onClick = onOpenRouteMap) { Text("Otwórz mapę") }
+                    }
+                }
+            }
+
+            Card {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    DetailRow(icon = { Icon(transportIcon(trip.transportType), null) }, label = "Transport", value = trip.transportType.label)
+                    DetailRow(label = "Rodzaj wydarzenia", value = trip.eventType.label)
+                    if (trip.venueAddress.isNotBlank()) {
+                        DetailRow(label = "Miejsce szkolenia", value = trip.venueAddress)
+                    }
+                    trip.hotel?.let { hotel ->
+                        val hotelValue = buildString {
+                            if (hotel.name.isNotBlank()) append(hotel.name)
+                            if (hotel.address.isNotBlank()) append(if (isEmpty()) hotel.address else ", ${hotel.address}")
+                            if (hotel.checkIn != null && hotel.checkOut != null) {
+                                append("\n${formatDateTime(hotel.checkIn)} – ${formatDateTime(hotel.checkOut)}")
+                            }
                         }
+                        DetailRow(label = "Nocleg", value = hotelValue.ifBlank { "Tak" })
+                    }
+                    trip.ticketInfo?.let { ticket ->
+                        Column {
+                            Text("Bilet", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (ticket.number.isNotBlank()) Text("Numer: ${ticket.number}")
+                            if (ticket.fileUrl.isNotBlank()) {
+                                TextButton(onClick = {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(ticket.fileUrl)))
+                                }) { Text("Otwórz bilet") }
+                            }
+                        }
+                    }
+                    if (trip.comment.isNotBlank()) {
+                        DetailRow(label = "Komentarz", value = trip.comment)
                     }
                 }
             }
@@ -172,15 +186,6 @@ fun TripDetailsScreen(
                                 }) { Text(contact.phone) }
                             }
                         }
-                    }
-                }
-            }
-
-            if (trip.comment.isNotBlank()) {
-                Card {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(text = "Komentarz", style = MaterialTheme.typography.titleSmall)
-                        Text(trip.comment)
                     }
                 }
             }
@@ -204,6 +209,21 @@ fun TripDetailsScreen(
                     }
                 }
             }
+
+            if (canEdit) {
+                Button(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
+                    Text("Edytuj wyjazd")
+                }
+                OutlinedButton(
+                    onClick = { showDeleteConfirm = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text("Usuń wyjazd")
+                }
+            }
         }
     }
 
@@ -224,9 +244,12 @@ fun TripDetailsScreen(
 }
 
 @Composable
-private fun DetailRow(icon: @Composable () -> Unit, label: String, value: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        icon()
-        Text(text = "$label: $value")
+private fun DetailRow(icon: (@Composable () -> Unit)? = null, label: String, value: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        icon?.invoke()
+        Column {
+            Text(text = label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = value, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }

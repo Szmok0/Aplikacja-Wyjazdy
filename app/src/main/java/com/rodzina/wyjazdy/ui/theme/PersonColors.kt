@@ -16,3 +16,12 @@ fun personColor(userId: String, memberUserIds: List<String>): Color {
     val index = memberUserIds.indexOf(userId).let { if (it < 0) 0 else it }
     return PersonPalette[index % PersonPalette.size]
 }
+
+// Odcienie (hue 0-360) dla BitmapDescriptorFactory.defaultMarker() na mapie - Google Maps nie
+// przyjmuje dowolnego RGB dla domyślnych pinezek, tylko hue, więc to przybliżenie PersonPalette.
+private val PersonMarkerHues = listOf(262f, 330f, 174f, 45f, 231f, 20f)
+
+fun personHueForMarker(userId: String, memberUserIds: List<String>): Float {
+    val index = memberUserIds.indexOf(userId).let { if (it < 0) 0 else it }
+    return PersonMarkerHues[index % PersonMarkerHues.size]
+}

@@ -49,10 +49,15 @@ class UserRepository(private val firestore: FirebaseFirestore) {
         usersCollection().document(userId).update("familyId", familyId).await()
     }
 
-    suspend fun updateNotificationPrefs(userId: String, reminderHoursBefore: List<Int>, statusUpdates: Boolean) {
-        usersCollection().document(userId).update(
-            "notificationPrefs",
-            mapOf("reminderHoursBefore" to reminderHoursBefore, "statusUpdates" to statusUpdates),
-        ).await()
+    suspend fun updateReminderHours(userId: String, reminderHoursBefore: List<Int>) {
+        usersCollection().document(userId)
+            .update("notificationPrefs.reminderHoursBefore", reminderHoursBefore)
+            .await()
+    }
+
+    suspend fun updateStatusUpdatesEnabled(userId: String, enabled: Boolean) {
+        usersCollection().document(userId)
+            .update("notificationPrefs.statusUpdates", enabled)
+            .await()
     }
 }

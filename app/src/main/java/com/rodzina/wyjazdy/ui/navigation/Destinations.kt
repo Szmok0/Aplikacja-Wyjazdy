@@ -3,8 +3,9 @@ package com.rodzina.wyjazdy.ui.navigation
 object Destinations {
     const val TRIP_LIST = "tripList"
     const val CALENDAR = "calendar"
-    const val FAMILY = "family"
-    const val NOTIFICATION_SETTINGS = "notificationSettings"
+    const val MAP = "map"
+    const val PEOPLE = "people"
+    const val PROFILE = "profile"
 
     const val TRIP_EDIT_ARG = "tripId"
     const val TRIP_EDIT = "tripEdit?$TRIP_EDIT_ARG={$TRIP_EDIT_ARG}"

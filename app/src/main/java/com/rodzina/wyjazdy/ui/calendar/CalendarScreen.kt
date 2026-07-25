@@ -1,7 +1,7 @@
 package com.rodzina.wyjazdy.ui.calendar
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +13,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -29,6 +37,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.Timestamp
 import com.kizitonwose.calendar.compose.HorizontalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.CalendarDay
@@ -37,6 +48,7 @@ import com.kizitonwose.calendar.core.DayPosition
 import com.kizitonwose.calendar.core.daysOfWeek
 import com.rodzina.wyjazdy.data.model.Trip
 import com.rodzina.wyjazdy.data.model.User
+import com.rodzina.wyjazdy.di.AppContainer
 import com.rodzina.wyjazdy.ui.common.TripCard
 import com.rodzina.wyjazdy.ui.theme.personColor
 import com.rodzina.wyjazdy.util.toLocalDate
@@ -45,8 +57,12 @@ import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
 
+private val HOUR_OPTIONS = listOf(72, 24, 3, 1)
+
 @Composable
 fun CalendarScreen(
+    container: AppContainer,
+    currentUserId: String,
     trips: List<Trip>,
     members: List<User>,
     onOpenTrip: (String) -> Unit,
@@ -55,6 +71,7 @@ fun CalendarScreen(
     val startMonth = remember { currentMonth.minusMonths(12) }
     val endMonth = remember { currentMonth.plusMonths(12) }
     val firstDayOfWeek = remember { daysOfWeek().first() }
+    val today = remember { LocalDate.now() }
     val state = rememberCalendarState(
         startMonth = startMonth,
         endMonth = endMonth,
@@ -64,6 +81,7 @@ fun CalendarScreen(
 
     val memberUserIds = members.map { it.id }
     val membersById = members.associateBy { it.id }
+    val currentUser = membersById[currentUserId]
 
     val tripsByDate = remember(trips) {
         val map = mutableMapOf<LocalDate, MutableList<Trip>>()
@@ -78,45 +96,128 @@ fun CalendarScreen(
         map
     }
 
-    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    val now = remember { Timestamp.now() }
+    val upcomingTrips = remember(trips) {
+        trips.filter { it.dateEnd >= now }.sortedBy { it.dateStart.seconds }
+    }
+
+    var showReminderSettings by remember { mutableStateOf(false) }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Kalendarz") }) }) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            WeekHeader(firstDayOfWeek)
-            HorizontalCalendar(
-                state = state,
-                dayContent = { day ->
-                    CalendarDayCell(
-                        day = day,
-                        dayTrips = tripsByDate[day.date] ?: emptyList(),
-                        memberUserIds = memberUserIds,
-                        selected = day.date == selectedDate,
-                        onClick = { selectedDate = day.date },
-                    )
-                },
-                monthHeader = { month -> MonthHeader(month) },
-            )
-            HorizontalDivider()
-            val dayTrips = selectedDate?.let { tripsByDate[it] } ?: emptyList()
-            if (selectedDate != null) {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    if (dayTrips.isEmpty()) {
-                        item {
-                            Text(
-                                "Brak wyjazdów tego dnia",
-                                modifier = Modifier.padding(16.dp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+            item { PersonLegend(members, memberUserIds) }
+            item {
+                Column {
+                    WeekHeader(firstDayOfWeek)
+                    HorizontalCalendar(
+                        state = state,
+                        dayContent = { day ->
+                            CalendarDayCell(
+                                day = day,
+                                dayTrips = tripsByDate[day.date] ?: emptyList(),
+                                memberUserIds = memberUserIds,
+                                isToday = day.date == today,
                             )
-                        }
-                    }
-                    items(dayTrips, key = { it.id }) { trip ->
-                        TripCard(
-                            trip = trip,
-                            owner = membersById[trip.ownerUserId],
-                            memberUserIds = memberUserIds,
-                            onClick = { onOpenTrip(trip.id) },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                        )
+                        },
+                        monthHeader = { month -> MonthHeader(month) },
+                    )
+                    HorizontalDivider()
+                }
+            }
+
+            item {
+                Text(
+                    "Nadchodzące wydarzenia",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(16.dp),
+                )
+            }
+            if (upcomingTrips.isEmpty()) {
+                item {
+                    Text(
+                        "Brak nadchodzących wyjazdów",
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            items(upcomingTrips, key = { it.id }) { trip ->
+                TripCard(
+                    trip = trip,
+                    owner = membersById[trip.ownerUserId],
+                    memberUserIds = memberUserIds,
+                    onClick = { onOpenTrip(trip.id) },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+
+            if (currentUser != null) {
+                item {
+                    ReminderSettingsSection(
+                        container = container,
+                        currentUserId = currentUserId,
+                        initialHours = currentUser.notificationPrefs.reminderHoursBefore,
+                        expanded = showReminderSettings,
+                        onToggleExpanded = { showReminderSettings = !showReminderSettings },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PersonLegend(members: List<User>, memberUserIds: List<String>) {
+    Row(
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        members.forEach { member ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Dot(personColor(member.id, memberUserIds))
+                Text(member.displayName.ifBlank { "?" }, style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReminderSettingsSection(
+    container: AppContainer,
+    currentUserId: String,
+    initialHours: List<Int>,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
+) {
+    val viewModel: CalendarReminderViewModel = viewModel(
+        key = currentUserId,
+        factory = CalendarReminderViewModel.factory(currentUserId, initialHours, container.userRepository),
+    )
+    val selectedHours by viewModel.reminderHoursBefore.collectAsStateWithLifecycle()
+
+    Card(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Ustawienia przypomnień", style = MaterialTheme.typography.titleMedium)
+                IconButton(onClick = onToggleExpanded) {
+                    Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, contentDescription = null)
+                }
+            }
+            if (expanded) {
+                Text(
+                    "Przypominaj o moich wyjazdach przed:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                )
+                HOUR_OPTIONS.forEach { hour ->
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Checkbox(checked = hour in selectedHours, onCheckedChange = { viewModel.toggleHour(hour) })
+                        Text(if (hour >= 24) "${hour / 24} dzień/dni wcześniej" else "$hour h wcześniej")
                     }
                 }
             }
@@ -157,8 +258,7 @@ private fun CalendarDayCell(
     day: CalendarDay,
     dayTrips: List<Trip>,
     memberUserIds: List<String>,
-    selected: Boolean,
-    onClick: () -> Unit,
+    isToday: Boolean,
 ) {
     val ownerColors = remember(dayTrips, memberUserIds) {
         dayTrips.map { it.ownerUserId }.distinct().take(3).map { personColor(it, memberUserIds) }
@@ -167,9 +267,8 @@ private fun CalendarDayCell(
         modifier = Modifier
             .aspectRatio(1f)
             .padding(2.dp)
-            .clickable(enabled = day.position == DayPosition.MonthDate, onClick = onClick)
             .then(
-                if (selected) Modifier.background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                if (isToday) Modifier.background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
                 else Modifier,
             ),
         horizontalAlignment = Alignment.CenterHorizontally,

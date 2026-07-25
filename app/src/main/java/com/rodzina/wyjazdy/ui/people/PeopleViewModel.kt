@@ -1,4 +1,4 @@
-package com.rodzina.wyjazdy.ui.family
+package com.rodzina.wyjazdy.ui.people
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,27 +9,27 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-data class FamilySettingsUiState(
+data class PeopleUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
 )
 
-class FamilySettingsViewModel(
+class PeopleViewModel(
     private val familyId: String,
     private val familyRepository: FamilyRepository,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(FamilySettingsUiState())
-    val state: StateFlow<FamilySettingsUiState> = _state
+    private val _state = MutableStateFlow(PeopleUiState())
+    val state: StateFlow<PeopleUiState> = _state
 
     private fun run(block: suspend () -> Unit) {
         viewModelScope.launch {
-            _state.value = FamilySettingsUiState(isLoading = true)
+            _state.value = PeopleUiState(isLoading = true)
             try {
                 block()
-                _state.value = FamilySettingsUiState()
+                _state.value = PeopleUiState()
             } catch (e: Exception) {
-                _state.value = FamilySettingsUiState(errorMessage = e.message ?: "Operacja nie powiodła się")
+                _state.value = PeopleUiState(errorMessage = e.message ?: "Operacja nie powiodła się")
             }
         }
     }
@@ -40,7 +40,7 @@ class FamilySettingsViewModel(
 
     companion object {
         fun factory(familyId: String, familyRepository: FamilyRepository) = viewModelFactory {
-            initializer { FamilySettingsViewModel(familyId, familyRepository) }
+            initializer { PeopleViewModel(familyId, familyRepository) }
         }
     }
 }
