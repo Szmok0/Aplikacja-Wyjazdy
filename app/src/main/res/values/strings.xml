@@ -6,7 +6,7 @@
       (albo Google Cloud Console -> Credentials -> OAuth 2.0 Client IDs -> "Web client (auto created by Google Service)").
       Bez tego Google Sign-In nie zadziała.
     -->
-    <string name="default_web_client_id" translatable="false">TODO_WKLEJ_WEB_CLIENT_ID</string>
+    <string name="default_web_client_id" translatable="false">491860461320-bsr4jq7bvj9mq1jf01qa39j9gsdnsh07.apps.googleusercontent.com</string>
 
     <string name="reminder_channel_name">Przypomnienia o wyjazdach</string>
 </resources>
