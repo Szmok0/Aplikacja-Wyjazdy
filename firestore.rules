@@ -1,0 +1,78 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function familyDoc(familyId) {
+      return get(/databases/$(database)/documents/families/$(familyId)).data;
+    }
+
+    function isMember(familyId) {
+      return isSignedIn() && request.auth.uid in familyDoc(familyId).memberUserIds;
+    }
+
+    function isAdmin(familyId) {
+      return isSignedIn() && request.auth.uid == familyDoc(familyId).adminUserId;
+    }
+
+    // users/{userId} - profil własny, czytelny też przez pozostałych członków rodziny (do wyświetlenia nazw/avatarów)
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    match /families/{familyId} {
+      allow read: if isMember(familyId);
+
+      // Tworzenie nowej rodziny: twórca staje się adminem i jedynym członkiem.
+      allow create: if isSignedIn()
+        && request.resource.data.adminUserId == request.auth.uid
+        && request.resource.data.memberUserIds == [request.auth.uid];
+
+      // Admin może zmieniać wszystko (nazwa, transfer roli, usuwanie członków).
+      // Dołączanie kodem zaproszenia: dowolny zalogowany user może dopisać WYŁĄCZNIE swoje
+      // własne uid na koniec memberUserIds, nic więcej nie może się zmienić w dokumencie.
+      allow update: if isAdmin(familyId)
+        || (
+          isSignedIn()
+          && !(request.auth.uid in resource.data.memberUserIds)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUserIds'])
+          && request.resource.data.memberUserIds == resource.data.memberUserIds.concat([request.auth.uid])
+        );
+
+      allow delete: if isAdmin(familyId);
+
+      match /trips/{tripId} {
+        allow read: if isMember(familyId);
+
+        allow create: if isMember(familyId)
+          && request.resource.data.ownerUserId == request.auth.uid;
+
+        allow update, delete: if isMember(familyId)
+          && (isAdmin(familyId) || resource.data.ownerUserId == request.auth.uid);
+
+        match /statusUpdates/{updateId} {
+          allow read: if isMember(familyId);
+          allow create: if isMember(familyId)
+            && (isAdmin(familyId) || get(/databases/$(database)/documents/families/$(familyId)/trips/$(tripId)).data.ownerUserId == request.auth.uid);
+          allow update, delete: if false;
+        }
+      }
+    }
+
+    // inviteCodes/{code} -> { familyId }. Osobna kolekcja, żeby dołączenie do rodziny nie
+    // wymagało odczytu/query po całej kolekcji "families" (niedozwolone regułami wyżej).
+    match /inviteCodes/{code} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin(request.resource.data.familyId);
+      allow update: if isAdmin(resource.data.familyId);
+      allow delete: if isAdmin(resource.data.familyId);
+    }
+  }
+}

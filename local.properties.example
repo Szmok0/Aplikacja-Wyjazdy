@@ -1,0 +1,9 @@
+# Skopiuj ten plik jako "local.properties" (w katalogu głównym projektu, obok settings.gradle.kts)
+# i wstaw prawdziwe wartości. "local.properties" jest w .gitignore - nigdy nie trafi do repo.
+
+# Ścieżka do Android SDK ustawia zwykle sam Android Studio przy pierwszym otwarciu projektu.
+# sdk.dir=/home/user/Android/Sdk
+
+# Klucz Google Maps SDK for Android (Google Cloud Console -> APIs & Services -> Credentials).
+# Włącz też "Maps SDK for Android" i "Directions API" dla tego klucza.
+MAPS_API_KEY=TWOJ_KLUCZ_GOOGLE_MAPS_TUTAJ
