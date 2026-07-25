@@ -12,7 +12,12 @@
           "package_name": "com.rodzina.wyjazdy"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "491860461320-bsr4jq7bvj9mq1jf01qa39j9gsdnsh07.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA1WZ689L2T3u8xJh5m_-Lv4f-HxwfhXao"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "491860461320-bsr4jq7bvj9mq1jf01qa39j9gsdnsh07.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
