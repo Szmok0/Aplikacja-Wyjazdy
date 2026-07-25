@@ -45,6 +45,10 @@ android {
 
     kotlinOptions {
         jvmTarget = "11"
+        // Duża część powierzchni Material3 (TopAppBar, DatePicker, ExposedDropdownMenuBox...)
+        // jest wciąż oznaczona jako eksperymentalna - opt-in globalnie, żeby nie oznaczać
+        // @OptIn w kilkunastu plikach z każdym ekranem.
+        freeCompilerArgs += listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
     }
 
     buildFeatures {
