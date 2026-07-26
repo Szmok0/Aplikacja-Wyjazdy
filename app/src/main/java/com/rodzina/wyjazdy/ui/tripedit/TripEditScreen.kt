@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -54,6 +55,7 @@ import com.rodzina.wyjazdy.ui.common.DateTimePickerField
 import com.rodzina.wyjazdy.ui.common.MiniMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import android.location.Geocoder
 import java.util.Locale
 
@@ -80,6 +82,8 @@ fun TripEditScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var showMoreInfo by remember { mutableStateOf(false) }
+    var isGeocoding by remember { mutableStateOf(false) }
+    var geocodeError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(saved) { if (saved) onDone() }
 
@@ -176,27 +180,49 @@ fun TripEditScreen(
             FormSection(title = "Miejsce szkolenia") {
                 OutlinedTextField(
                     value = form.venueAddress,
-                    onValueChange = viewModel::setVenueAddress,
+                    onValueChange = { viewModel.setVenueAddress(it); geocodeError = null },
                     label = { Text("Adres") },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Button(
-                    enabled = form.venueAddress.isNotBlank(),
-                    onClick = {
-                        val address = form.venueAddress
-                        scope.launch(Dispatchers.IO) {
-                            @Suppress("DEPRECATION")
-                            val results = runCatching {
-                                Geocoder(context, Locale("pl")).getFromLocationName(address, 1)
-                            }.getOrNull()
-                            val location = results?.firstOrNull()
-                            if (location != null) {
-                                viewModel.setVenueLatLng(location.latitude, location.longitude)
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Button(
+                        enabled = form.venueAddress.isNotBlank() && !isGeocoding,
+                        onClick = {
+                            val address = form.venueAddress
+                            geocodeError = null
+                            isGeocoding = true
+                            scope.launch(Dispatchers.IO) {
+                                val result = runCatching {
+                                    if (!Geocoder.isPresent()) {
+                                        error("Geokodowanie nie jest dostępne na tym urządzeniu")
+                                    }
+                                    @Suppress("DEPRECATION")
+                                    Geocoder(context, Locale("pl")).getFromLocationName(address, 1)
+                                }
+                                withContext(Dispatchers.Main) {
+                                    isGeocoding = false
+                                    val location = result.getOrNull()?.firstOrNull()
+                                    if (location != null) {
+                                        viewModel.setVenueLatLng(location.latitude, location.longitude)
+                                    } else {
+                                        geocodeError = result.exceptionOrNull()?.message
+                                            ?: "Nie znaleziono tego adresu. Sprawdź pisownię albo spróbuj dokładniejszego adresu (np. z numerem domu i miastem)."
+                                    }
+                                }
                             }
-                        }
-                    },
-                ) {
-                    Text("Znajdź na mapie")
+                        },
+                    ) {
+                        Text("Znajdź na mapie")
+                    }
+                    if (isGeocoding) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(start = 12.dp).size(20.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    }
+                }
+                if (geocodeError != null) {
+                    Text(text = geocodeError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
             }
 

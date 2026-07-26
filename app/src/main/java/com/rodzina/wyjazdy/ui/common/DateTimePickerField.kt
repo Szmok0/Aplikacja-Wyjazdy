@@ -1,5 +1,7 @@
 package com.rodzina.wyjazdy.ui.common
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -20,7 +22,6 @@ import androidx.compose.ui.Modifier
 import com.rodzina.wyjazdy.util.formatDateTime
 import com.rodzina.wyjazdy.util.toTimestamp
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
@@ -37,19 +38,21 @@ fun DateTimePickerField(
     var showTimePicker by remember { mutableStateOf(false) }
     var pendingDate by remember { mutableStateOf(value.toLocalDate()) }
 
-    OutlinedTextField(
-        value = formatDateTime(value.toTimestamp()),
-        onValueChange = {},
-        readOnly = true,
-        enabled = true,
-        label = { Text(label) },
-        modifier = modifier.fillMaxWidth(),
-        trailingIcon = {},
-    )
-    // Nakładka klikalna - OutlinedTextField w Compose nie ma prostego "onClick" bez focusable/interactionSource,
-    // więc otwieramy dialogi z osobnego, przezroczystego przycisku poniżej pola dla prostoty MVP.
-    TextButton(onClick = { showDatePicker = true }, modifier = modifier.fillMaxWidth()) {
-        Text("Zmień: $label")
+    Box(modifier = modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = formatDateTime(value.toTimestamp()),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        // Nakładka przechwytująca dotyk na całym polu, żeby tap gdziekolwiek w pole otwierał
+        // kalendarz - samo OutlinedTextField(readOnly=true) nie reaguje na kliknięcia.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(onClick = { showDatePicker = true }),
+        )
     }
 
     if (showDatePicker) {
