@@ -1,3 +1,4 @@
+import java.io.File
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -18,6 +19,27 @@ val mapsApiKey: String = (localProperties.getProperty("MAPS_API_KEY") ?: "").ifB
     "MISSING_MAPS_API_KEY"
 }
 
+// manifestPlaceholders potrafi się nie podstawić w niektórych środowiskach (obserwowane:
+// zdekompilowany manifest w APK dalej miał dosłowne "${MAPS_API_KEY}"). Zamiast tego
+// generujemy zasób @string/google_maps_key - dokładnie tak jak robi to oficjalny szablon
+// "Google Maps Activity" w Android Studio - i manifest odwołuje się do niego bezpośrednio.
+val generateMapsApiKeyRes = tasks.register("generateMapsApiKeyRes") {
+    val outputDir = layout.buildDirectory.dir("generated/mapsApiKeyRes/values")
+    inputs.property("mapsApiKey", mapsApiKey)
+    outputs.dir(outputDir)
+    doLast {
+        val dir = outputDir.get().asFile
+        dir.mkdirs()
+        File(dir, "google_maps_api.xml").writeText(
+            """<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="google_maps_key" translatable="false">$mapsApiKey</string>
+</resources>
+""",
+        )
+    }
+}
+
 android {
     namespace = "com.rodzina.wyjazdy"
     compileSdk = 35
@@ -28,8 +50,12 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+    }
 
-        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+    sourceSets {
+        getByName("main") {
+            res.srcDir(layout.buildDirectory.dir("generated/mapsApiKeyRes"))
+        }
     }
 
     buildTypes {
@@ -93,4 +119,8 @@ dependencies {
     implementation(libs.maps.compose)
     implementation(libs.calendar.compose)
     implementation(libs.work.runtime.ktx)
+}
+
+tasks.named("preBuild") {
+    dependsOn(generateMapsApiKeyRes)
 }
